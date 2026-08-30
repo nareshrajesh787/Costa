@@ -57,7 +57,7 @@
   --input: #eadfcd;
   --ring: #3a332b;
   --ok: #4a6b46;
-  --caution: #b86a32;
+  --caution: #96521f;
   --warn: #c05621;
   --critical: #9f2d20;
   --tide: #8a7a62;
@@ -96,6 +96,29 @@
 
   html {
     @apply scroll-smooth;
+  }
+
+  /* Keyboard users need to see where they are. Without this the whole desk is
+     tabbable but gives no focus indicator at all (WCAG 2.4.7). Mouse clicks are
+     unaffected because this is :focus-visible, not :focus. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 0.375rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 
   body {

@@ -230,6 +230,7 @@ def score_zone(
         "position": zone["position"],
         "currentVector": zone["currentVector"],
         "forecastRisk": zone["forecastRisk"],
+        "forecastSource": zone.get("forecastSource", "live"),
         "reports": zone.get("reports", []),
         "immediateExposure": round(exposure, 2),
         "cleanupValue": round(value, 2),
@@ -339,7 +340,11 @@ def evaluate_state(
                     **z,
                     "assigned": z["id"] in selected_set,
                     "role": "containment",
-                    "reason": "Scenario drift projects elevated landfall risk within 12 hours.",
+                    "reason": (
+                        "Loaded drift scenario projects elevated landfall risk within 12 hours."
+                        if z.get("forecastSource") == "scenario"
+                        else "Live wind and current project elevated landfall risk within 12 hours."
+                    ),
                 }
             )
     containment.sort(key=lambda z: z["forecastRisk"]["h12"], reverse=True)
@@ -387,11 +392,21 @@ def evaluate_state(
             "unresolvedExposure": unresolved_exposure,
             "unfundedHours": unfunded_hours,
             "operatingCost": operating_cost,
-            "netProtected": round(protected_value - operating_cost, 2),
             "totalImmediateExposure": total_exposure,
             "totalInspections": total_insp,
             "zoneCount": len(scored),
             "selectedCount": len(selected_ids),
+            # Stated because these figures are NOT subtractable. valueProtected and
+            # unresolvedExposure are hourly exposure rates ($/h, from
+            # hourlyRevenueAtRisk); operatingCost is a whole-shift dollar total
+            # (crew-hours x cleanupCostPerHour). An earlier "netProtected" field
+            # subtracted the two and produced a meaningless number.
+            "units": {
+                "valueProtected": "USD per hour of exposure",
+                "unresolvedExposure": "USD per hour of exposure",
+                "totalImmediateExposure": "USD per hour of exposure",
+                "operatingCost": "USD for the whole shift",
+            },
         },
         "selection": {
             "ids": selected_ids,
@@ -461,11 +476,15 @@ def apply_forecast_update(
         if zone["id"] != zone_id:
             continue
         found = True
-        zone["forecastRisk"] = {
+        risk = {
             "h12": float(forecast_risk["h12"]),
             "h24": float(forecast_risk["h24"]),
             "h48": float(forecast_risk["h48"]),
         }
+        zone["forecastRisk"] = risk
+        # Persisted so a later live-weather refresh does not silently discard it.
+        zone["forecastOverride"] = risk
+        zone["forecastSource"] = "scenario"
         break
     if not found:
         raise KeyError(f"Unknown zone '{zone_id}'")

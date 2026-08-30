@@ -310,6 +310,13 @@ async def _noaa_tides(lat: float, lng: float) -> dict[str, Any] | None:
 
 
 def apply_weather_to_zones(zones: list[dict[str, Any]], weather: dict[str, Any]) -> list[dict[str, Any]]:
+    """Convert live wind/current into each zone's drift vector and landfall risk.
+
+    A zone carrying a ``forecastOverride`` keeps that scripted risk instead of the
+    live one, and is tagged ``forecastSource == "scenario"`` so the UI and the
+    briefing can label it as a drill rather than as observed weather. Without this
+    the next snapshot would silently overwrite a scenario the operator just loaded.
+    """
     for zone in zones:
         facing = float(zone.get("shoreFacing", 90))
         zone["currentVector"] = {
@@ -319,9 +326,22 @@ def apply_weather_to_zones(zones: list[dict[str, Any]], weather: dict[str, Any])
         h12 = weather.get("h12") or {}
         h24 = weather.get("h24") or {}
         h48 = weather.get("h48") or {}
-        zone["forecastRisk"] = {
+        live_risk = {
             "h12": landfall_risk(float(h12.get("windDirection") or 90), float(h12.get("windSpeedMs") or 0), facing, 12),
             "h24": landfall_risk(float(h24.get("windDirection") or 90), float(h24.get("windSpeedMs") or 0), facing, 24),
             "h48": landfall_risk(float(h48.get("windDirection") or 90), float(h48.get("windSpeedMs") or 0), facing, 48),
         }
+        override = zone.get("forecastOverride")
+        if override:
+            zone["forecastRisk"] = {
+                "h12": float(override["h12"]),
+                "h24": float(override["h24"]),
+                "h48": float(override["h48"]),
+            }
+            zone["forecastSource"] = "scenario"
+            zone["liveForecastRisk"] = live_risk
+        else:
+            zone["forecastRisk"] = live_risk
+            zone["forecastSource"] = "live"
+            zone["liveForecastRisk"] = live_risk
     return zones

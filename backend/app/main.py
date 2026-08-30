@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.auth import create_token, get_current_user, hash_password, require_operations, verify_password
 from app.db import get_conn, init_db, row_to_dict
-from app.lib.explain import answer_question, explain_with_model, grok_status, ollama_status
+from app.lib.explain import active_tier, answer_question, explain_with_model, grok_status, ollama_status
 from app.lib.fallback_explain import fallback_explanation
 from app.models import AskIn, DemoPlayIn, ExplainIn, InspectionIn, LoginIn, RegisterIn, ReportIn, SettingsIn, ZoneEconomicsIn
 from app.store import (
@@ -66,8 +66,10 @@ async def health():
         "ok": True,
         "engine": "sargassum-watch",
         "storage": "sqlite",
-        "weather": "open-meteo",
-        "ai": grok,
+        "weather": "open-meteo + NWS + NOAA CO-OPS",
+        # "ai" is the tier that would actually serve a request right now, so the
+        # desk never credits a model that is not reachable.
+        "ai": await active_tier(),
         "grok": grok,
         "ollama": ollama,
     }

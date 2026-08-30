@@ -65,6 +65,7 @@ export interface Zone {
     h24: { x: number; y: number }
     h48: { x: number; y: number }
   }
+  forecastSource?: "live" | "scenario"
   breakdown: ZoneBreakdown
   assignedCleanup?: boolean
   cleanupRank?: number
@@ -92,11 +93,13 @@ export interface Metrics {
   unresolvedExposure: number
   unfundedHours: number
   operatingCost: number
-  netProtected: number
   totalImmediateExposure: number
   totalInspections: number
   zoneCount: number
   selectedCount: number
+  // valueProtected / unresolvedExposure are hourly exposure rates; operatingCost is
+  // a whole-shift total. They are deliberately not subtractable.
+  units?: Record<string, string>
 }
 
 export interface ChangeEvent {
@@ -216,6 +219,14 @@ export interface AskAnswer {
   answer: string
   caveat: string
   source: string
+}
+
+export interface AiTier {
+  tier: "grok" | "ollama" | "local-fallback"
+  provider: string
+  model: string | null
+  cascade: string
+  role: string
 }
 
 export interface Health {

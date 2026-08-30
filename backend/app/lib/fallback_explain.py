@@ -20,10 +20,13 @@ def fallback_explanation(state: dict[str, Any]) -> dict[str, Any]:
 
     names = [z["name"] for z in cleanup]
     if names:
+        budget = metrics.get("crewBudget", 0)
+        # "an 8-hour", "an 11-hour", "an 18-hour"; "a 12-hour", "a 16-hour".
+        article = "an" if str(budget).startswith(("8", "11", "18")) else "a"
         summary = (
-            f"With a {metrics.get('crewBudget', 0)}-hour crew budget, dispatch cleanup to "
-            f"{_join(names)} to protect about {money(metrics.get('valueProtected', 0))} in "
-            f"estimated shift exposure. Remaining capacity is {metrics.get('remainingHours', 0)} hours."
+            f"With {article} {budget}-hour crew budget, dispatch cleanup to "
+            f"{_join(names)} to protect about {money(metrics.get('valueProtected', 0))} per hour of "
+            f"estimated exposure. Remaining capacity is {metrics.get('remainingHours', 0)} hours."
         )
     else:
         summary = "No cleanup assignment fits the current crew-hour budget."
@@ -77,8 +80,9 @@ def fallback_explanation(state: dict[str, Any]) -> dict[str, Any]:
         )
 
     caveat = (
-        "Rankings come from the deterministic engine on live citizen reports and Open-Meteo marine weather. "
-        "This text only restates those numbers. Dollar weights are municipality operations estimates. "
+        "Written by the local template — no model was reachable, and the plan is unchanged either way. "
+        "Rankings come from the deterministic engine on filed reports and live Open-Meteo / NWS / NOAA "
+        "conditions. Dollar weights are municipality operations estimates, not audited losses. "
         f"Horizon {settings.get('horizon', 'h24')}. Method: exact 0/1 knapsack + UCB-inspired scout scores."
     )
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
 import { Navigate, useNavigate } from "react-router-dom"
 import { Menu } from "lucide-react"
 import { toast } from "sonner"
@@ -19,6 +19,14 @@ import { assignmentBanner } from "@/lib/copy"
 import { localFallbackExplanation } from "@/lib/format"
 import type { AskAnswer, DashboardState, Explanation, Horizon } from "@/lib/types"
 import { cn } from "@/lib/utils"
+
+function Key({ children }: { children: ReactNode }) {
+  return (
+    <kbd className="rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[11px] text-foreground">
+      {children}
+    </kbd>
+  )
+}
 
 export function DashboardPage() {
   const navigate = useNavigate()
@@ -89,6 +97,60 @@ export function DashboardPage() {
     [state, selectedId],
   )
 
+  const seedShift = useCallback(() => {
+    setMenu(false)
+    void run(() => api.seed(), "Seeded 8-hour shift")
+  }, [run])
+
+  const resetDesk = useCallback(() => {
+    setMenu(false)
+    setStory(null)
+    void run(() => api.reset(), "Demo reset")
+  }, [run])
+
+  const playEvent = useCallback(
+    (id: string) => {
+      setMenu(false)
+      void run(() => api.play(id))
+    },
+    [run],
+  )
+
+  // Presenter shortcuts, and a keyboard path to the demo controls generally:
+  // 1-3 play the scripted events in order, S seeds the shift, R resets.
+  // Ignored while typing in a field so the report form still works normally.
+  const demoEvents = state?.demoEvents
+  const isOps = user?.role === "operations"
+  useEffect(() => {
+    if (!isOps || !demoEvents?.length) return
+    const events = demoEvents
+    function onKey(event: KeyboardEvent) {
+      if (event.metaKey || event.ctrlKey || event.altKey) return
+      const target = event.target as HTMLElement | null
+      if (target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) {
+        return
+      }
+      const key = event.key.toLowerCase()
+      if (key === "r") {
+        event.preventDefault()
+        resetDesk()
+        return
+      }
+      if (key === "s") {
+        event.preventDefault()
+        seedShift()
+        return
+      }
+      const index = Number(event.key)
+      if (Number.isInteger(index) && index >= 1 && index <= events.length) {
+        event.preventDefault()
+        playEvent(events[index - 1].id)
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [isOps, demoEvents, playEvent, resetDesk, seedShift])
+
   async function explain() {
     if (!state) return
     setExplainLoading(true)
@@ -117,7 +179,7 @@ export function DashboardPage() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Ask failed — using local note")
       setAsk({
-        answer: "Could not reach Grok. Rankings still come from the engine on this page, not from a model.",
+        answer: "Could not reach the explanation model. Rankings still come from the engine on this page, not from a model.",
         caveat: "Local fallback. No new numbers were invented.",
         source: "local-fallback",
       })
@@ -146,6 +208,10 @@ export function DashboardPage() {
   const horizon = state.settings.horizon
   const T = state.metrics.totalInspections
   const c = state.settings.explorationC
+  // Nobody has filed anything yet. Any cleanup rows on screen come purely from the
+  // forecast term, not from an observed pile — say so rather than letting the list
+  // imply a beach was reported dirty.
+  const noObservations = state.zones.every((zone) => zone.meanSeverity === 0)
 
   const sidebar = (
     <AppSidebar
@@ -165,19 +231,9 @@ export function DashboardPage() {
         clearToken()
         navigate("/")
       }}
-      onSeed={() => {
-        setMenu(false)
-        void run(() => api.seed(), "Seeded 8-hour shift")
-      }}
-      onReset={() => {
-        setMenu(false)
-        setStory(null)
-        void run(() => api.reset(), "Demo reset")
-      }}
-      onPlay={(id) => {
-        setMenu(false)
-        void run(() => api.play(id))
-      }}
+      onSeed={seedShift}
+      onReset={resetDesk}
+      onPlay={playEvent}
     />
   )
 
@@ -197,7 +253,9 @@ export function DashboardPage() {
           </Button>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{state.community.name}</p>
-            <p className="truncate text-xs text-muted-foreground">Simulated planning data</p>
+            <p className="truncate text-xs text-muted-foreground">
+              Live reports and marine weather · crew hours and beach values are this town&rsquo;s estimates
+            </p>
           </div>
           {user?.role === "operations" ? (
             <div className="flex items-center gap-1 rounded-lg bg-muted p-1 text-sm">
@@ -237,6 +295,15 @@ export function DashboardPage() {
             <div className="space-y-5 p-3 sm:p-5">
               {story ? (
                 <div className="rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm">{story}</div>
+              ) : noObservations ? (
+                <div className="rounded-xl border border-border bg-muted/50 px-4 py-3 text-sm">
+                  <p className="font-medium">Nobody has reported a beach yet.</p>
+                  <p className="mt-1 text-muted-foreground">
+                    Press <Key>S</Key> (or “Seed 8-hour shift”) to load a worked example, then{" "}
+                    <Key>1</Key>–<Key>3</Key> to play the scripted events and <Key>R</Key> to reset. Real
+                    reports arrive from the Citizen tab.
+                  </p>
+                </div>
               ) : null}
 
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,0.35fr)_minmax(0,0.65fr)]">
@@ -278,8 +345,11 @@ export function DashboardPage() {
                     <div className="rounded-xl border border-border bg-card px-4 py-3">
                       <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Boom watch</p>
                       <p className="mt-1 text-sm">
-                        {boomList.map((z) => z.name).join(", ")} — deploy boom before projected landfall. Forecast
-                        scenario, not knapsack.
+                        {boomList.map((z) => z.name).join(", ")} — deploy boom before projected landfall.{" "}
+                        {boomList.some((z) => z.forecastSource === "scenario")
+                          ? "Includes a loaded drift scenario, not live weather."
+                          : "Driven by live wind and current."}{" "}
+                        Forecast overlay, not a knapsack output.
                       </p>
                     </div>
                   ) : null}
@@ -295,6 +365,15 @@ export function DashboardPage() {
                     <h2 className="mb-1 font-display text-2xl">Cleanup now</h2>
                     <p className="mb-3 text-xs text-muted-foreground">
                       Exact 0/1 knapsack — highest-value set that fits the hour budget.
+                      {noObservations && state.cleanupNow.length ? (
+                        <>
+                          {" "}
+                          <span className="text-foreground">
+                            No reports yet, so this set is driven only by forecast drift risk, not by an
+                            observed pile.
+                          </span>
+                        </>
+                      ) : null}
                     </p>
                     <div className="space-y-3">
                       {state.cleanupNow.length ? (

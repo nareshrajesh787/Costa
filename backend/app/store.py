@@ -10,6 +10,7 @@ from app.data.demo_scenarios import clone_demo_events
 from app.data.zones import clone_zone_template
 from app.db import dumps, get_conn, loads, row_to_dict
 from app.lib.algorithms import apply_inspection, apply_report, evaluate_state
+from app.lib.explain import active_tier
 from app.lib.weather import apply_weather_to_zones, fetch_marine_weather
 
 AT = timezone(timedelta(hours=-4))
@@ -132,7 +133,7 @@ async def snapshot(muni: dict[str, Any], *, highlight: bool = False, user: dict[
         previous_scout_json=dumps([z["id"] for z in evaluated["scoutNext"]]),
         zones_json=dumps(zones),
     )
-    return _pack(muni, evaluated, weather, highlight=highlight, user=user)
+    return _pack(muni, evaluated, weather, highlight=highlight, user=user, ai=await active_tier())
 
 
 def _pack(
@@ -142,6 +143,7 @@ def _pack(
     *,
     highlight: bool,
     user: dict[str, Any] | None,
+    ai: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     muni_id = int(muni["id"])
     report_rows = _reports(muni_id)
@@ -162,10 +164,12 @@ def _pack(
         },
         "weather": weather,
         "ai": {
-            "provider": "xAI Grok",
-            "model": "grok-4.6",
-            "endpoint": "https://api.x.ai/v1",
-            "role": "explains computed numbers only",
+            # The tier that would actually answer right now, not the one we hope for.
+            "tier": (ai or {}).get("tier", "local-fallback"),
+            "provider": (ai or {}).get("label", "Local template (no model)"),
+            "model": (ai or {}).get("model"),
+            "cascade": "xAI Grok → Ollama → local template",
+            "role": "explains computed numbers only — never ranks zones or assigns crews",
         },
         "user": (
             {"id": user["id"], "name": user["name"], "email": user["email"], "role": user["role"]}
@@ -460,7 +464,11 @@ async def play_demo(muni: dict[str, Any], event_id: str, user: dict[str, Any]) -
             if zone["id"] != payload["zoneId"]:
                 continue
             found = True
+            # forecastOverride survives the next weather refresh; forecastRisk alone
+            # would be overwritten by apply_weather_to_zones on the very next snapshot.
+            zone["forecastOverride"] = payload["forecastRisk"]
             zone["forecastRisk"] = payload["forecastRisk"]
+            zone["forecastSource"] = "scenario"
             break
         if not found:
             raise KeyError(payload["zoneId"])
@@ -508,7 +516,8 @@ def shift_briefing_text(state: dict[str, Any]) -> str:
         lines.append("  - every scored beach fit")
     lines += [
         "",
-        "Grok explains these lists. It does not pick the beaches.",
-        "Weather: Open-Meteo. Dollars: this town’s estimates.",
+        f"Explanations come from: {(state.get('ai') or {}).get('provider', 'local template')}. "
+        "Whatever writes them does not pick the beaches.",
+        "Weather: Open-Meteo, NWS, NOAA. Dollars: this town’s estimates.",
     ]
     return "\n".join(lines)

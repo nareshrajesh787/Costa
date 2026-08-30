@@ -98,6 +98,27 @@ def _extract_responses_text(data: dict[str, Any]) -> str:
     return "\n".join(chunks)
 
 
+async def active_tier() -> dict[str, Any]:
+    """Which explanation tier would actually serve a request right now.
+
+    The cascade is Grok -> Ollama -> a local deterministic template. Reporting the
+    configured provider rather than the reachable one would tell an operator the
+    text came from a model when the template wrote it.
+    """
+    if _xai_key():
+        return {"tier": "grok", "label": f"xAI {XAI_MODEL}", "model": XAI_MODEL, "live": True}
+    ollama = await ollama_status()
+    if ollama.get("ok") and ollama.get("models"):
+        model = await _pick_ollama_model()
+        return {"tier": "ollama", "label": f"Ollama {model}", "model": model, "live": True}
+    return {
+        "tier": "local-fallback",
+        "label": "Local template (no model)",
+        "model": None,
+        "live": False,
+    }
+
+
 async def grok_status() -> dict[str, Any]:
     key = _xai_key()
     return {

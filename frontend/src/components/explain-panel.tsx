@@ -83,7 +83,7 @@ export function ExplainPanel({
     <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-sm font-medium">Grok explains the lists. It does not pick them.</p>
+          <p className="text-sm font-medium">The AI explains the lists. It does not pick them.</p>
           <p className="mt-1 text-xs text-muted-foreground">
             Structured JSON only — summary, why trucks, why scouts, tradeoffs, caveat.
           </p>
@@ -98,7 +98,9 @@ export function ExplainPanel({
       {explanation ? (
         <div className="mt-4 space-y-3 text-sm leading-relaxed">
           <Badge variant={explanation.source === "grok" || explanation.source?.includes("xAI") ? "ok" : "caution"}>
-            {explanation.source === "local-fallback" ? "Local fallback" : explanation.model || explanation.source}
+            {explanation.source === "local-fallback"
+              ? "Local template — no model"
+              : explanation.model || explanation.source}
           </Badge>
           <p>{explanation.summary}</p>
           {explanation.cleanupRationale?.length ? (

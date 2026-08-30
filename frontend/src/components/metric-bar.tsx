@@ -6,8 +6,8 @@ export function MetricBar({ metrics }: { metrics: Metrics }) {
     { label: "Hour budget", value: `${metrics.crewBudget}h` },
     { label: "Assigned", value: `${metrics.assignedHours}h` },
     { label: "Remaining", value: `${metrics.remainingHours}h` },
-    { label: "Value protected", value: compactMoney(metrics.valueProtected) },
-    { label: "Unfunded risk", value: compactMoney(metrics.unresolvedExposure) },
+    { label: "Value protected", value: `${compactMoney(metrics.valueProtected)}/h` },
+    { label: "Unfunded risk", value: `${compactMoney(metrics.unresolvedExposure)}/h` },
   ]
 
   return (
@@ -21,7 +21,9 @@ export function MetricBar({ metrics }: { metrics: Metrics }) {
         ))}
       </div>
       <p className="border-t border-border px-4 py-2 text-[11px] text-muted-foreground">
-        Operating cost {money(metrics.operatingCost)}. Simulated planning data — not satellite counts.
+        Value protected and unfunded risk are hourly exposure rates. Operating cost is{" "}
+        {money(metrics.operatingCost)} for the whole shift — different units, not subtractable. Seaweed
+        amounts come from filed reports, not satellite counts.
       </p>
     </section>
   )

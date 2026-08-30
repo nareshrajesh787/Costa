@@ -63,24 +63,34 @@ export function AppSidebar({
           <NavItem icon={<MapPin />} label="Citizen report" active />
         )}
 
-        <p className="px-3 pt-5 pb-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-          Demo
-        </p>
-        <NavItem icon={<Waves />} label="Seed 8-hour shift" disabled={pending} onClick={onSeed} />
-        <NavItem icon={<RotateCcw />} label="Reset demo" disabled={pending} onClick={onReset} />
-        {demoEvents.map((event) => (
-          <NavItem
-            key={event.id}
-            label={event.title}
-            disabled={pending}
-            onClick={() => onPlay(event.id)}
-          />
-        ))}
+        {/* Demo controls are operations-only on the server; showing them to a citizen
+            would just hand them buttons that 403. */}
+        {canToggleView ? (
+          <>
+            <p className="px-3 pt-5 pb-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+              Demo
+            </p>
+            <NavItem icon={<Waves />} label="Seed 8-hour shift" hint="S" disabled={pending} onClick={onSeed} />
+            <NavItem icon={<RotateCcw />} label="Reset demo" hint="R" disabled={pending} onClick={onReset} />
+            {demoEvents.map((event, index) => (
+              <NavItem
+                key={event.id}
+                label={event.title}
+                hint={String(index + 1)}
+                disabled={pending}
+                onClick={() => onPlay(event.id)}
+              />
+            ))}
+            <p className="px-3 pt-1 pb-1 text-[11px] leading-relaxed text-muted-foreground">
+              Keyboard: 1–{demoEvents.length} play events, S seeds, R resets.
+            </p>
+          </>
+        ) : null}
       </nav>
 
       <div className="px-3 pb-3">
         <div className="rounded-2xl bg-muted/70 px-4 py-4">
-          <p className="text-sm font-medium">Simulated planning data</p>
+          <p className="text-sm font-medium">Where these numbers come from</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
             {disclaimer || "Hours and dollars are town estimates. Seaweed amounts come from reports, not satellites."}
           </p>
@@ -101,12 +111,14 @@ export function AppSidebar({
 function NavItem({
   icon,
   label,
+  hint,
   active,
   disabled,
   onClick,
 }: {
   icon?: ReactNode
   label: string
+  hint?: string
   active?: boolean
   disabled?: boolean
   onClick?: () => void
@@ -117,12 +129,20 @@ function NavItem({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors disabled:opacity-50",
+        "flex w-full items-start gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors disabled:opacity-50",
         active ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
       )}
     >
       {icon ? <span className="[&_svg]:size-4">{icon}</span> : <span className="w-4" />}
-      {label}
+      <span className="min-w-0 flex-1 leading-snug text-balance">{label}</span>
+      {hint ? (
+        <kbd
+          aria-hidden="true"
+          className="shrink-0 self-start rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
+        >
+          {hint}
+        </kbd>
+      ) : null}
     </button>
   )
 }

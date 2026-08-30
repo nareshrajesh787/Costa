@@ -20,7 +20,8 @@ bearer = HTTPBearer(auto_error=False)
 
 
 def _jwt_secret() -> str:
-    return os.getenv("JWT_SECRET", "sargassum-watch-dev-change-me-32b!")
+    # Dev-only default. Set JWT_SECRET in backend/.env for anything real.
+    return os.getenv("JWT_SECRET") or "sargassum-watch-dev-only-secret-change-me-in-env-32b+"
 
 
 def hash_password(password: str) -> str:

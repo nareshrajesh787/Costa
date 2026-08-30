@@ -15,7 +15,7 @@ export function LandingPage() {
         </h1>
         <p className="mx-auto mt-6 max-w-[46ch] text-base leading-relaxed text-muted-foreground">
           Neighbors report what they see. The app picks which beaches get a cleanup crew today — and
-          which ones just need someone to go look. Grok writes a short explanation. It does not
+          which ones just need someone to go look. The AI writes a short explanation. It does not
           choose the plan.
         </p>
         <div className="mt-8 flex justify-center">
