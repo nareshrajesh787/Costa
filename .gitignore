@@ -9,3 +9,12 @@ __pycache__/
 backend/data/
 *.db
 nohup.out
+
+# Local agent/editor tooling — machine-local config, not project content
+.agent/
+.agents/
+.claude/
+.codex/
+.cursor/
+.gemini/
+.impeccable/
