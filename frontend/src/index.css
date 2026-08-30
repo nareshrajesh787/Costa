@@ -1,0 +1,157 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ok: var(--ok);
+  --color-caution: var(--caution);
+  --color-warn: var(--warn);
+  --color-critical: var(--critical);
+  --color-tide: var(--tide);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+:root {
+  --radius: 0.95rem;
+  --background: #f6f1e6;
+  --foreground: #2c261e;
+  --card: #fbf7ee;
+  --card-foreground: #2c261e;
+  --popover: #fbf7ee;
+  --popover-foreground: #2c261e;
+  --primary: #3a332b;
+  --primary-foreground: #f8f3e8;
+  --secondary: #ece4d4;
+  --secondary-foreground: #2c261e;
+  --muted: #eadfcd;
+  --muted-foreground: #6b6256;
+  --accent: #b86a32;
+  --accent-foreground: #fff8ef;
+  --destructive: #9f2d20;
+  --border: rgba(62, 52, 40, 0.12);
+  --input: #eadfcd;
+  --ring: #3a332b;
+  --ok: #4a6b46;
+  --caution: #b86a32;
+  --warn: #c05621;
+  --critical: #9f2d20;
+  --tide: #8a7a62;
+}
+
+.dark {
+  --background: #1c1814;
+  --foreground: #f3eadc;
+  --card: #26211b;
+  --card-foreground: #f3eadc;
+  --popover: #26211b;
+  --popover-foreground: #f3eadc;
+  --primary: #eadfcd;
+  --primary-foreground: #241f1a;
+  --secondary: #322c25;
+  --secondary-foreground: #f3eadc;
+  --muted: #322c25;
+  --muted-foreground: #b7aa97;
+  --accent: #e08a4a;
+  --accent-foreground: #241f1a;
+  --destructive: #f0a090;
+  --border: rgba(243, 234, 220, 0.12);
+  --input: rgba(243, 234, 220, 0.14);
+  --ring: #eadfcd;
+  --ok: #9cbf8f;
+  --caution: #e08a4a;
+  --warn: #e08a4a;
+  --critical: #f0a090;
+  --tide: #c4b49a;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply min-h-screen bg-background font-sans text-foreground antialiased;
+    background-image:
+      radial-gradient(900px 420px at 8% -8%, color-mix(in oklab, #d9c7a4 35%, transparent), transparent 58%),
+      radial-gradient(800px 380px at 100% 0%, color-mix(in oklab, #c9b48a 22%, transparent), transparent 52%),
+      linear-gradient(180deg, #f8f3e9, #f3eadc 100%);
+    background-attachment: fixed;
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(900px 420px at 10% -10%, rgba(184, 106, 50, 0.12), transparent 50%),
+      linear-gradient(180deg, #1c1814, #161310 100%);
+  }
+
+  h1, h2, .font-display {
+    font-family: var(--font-display);
+  }
+
+  button, [role="button"] {
+    cursor: pointer;
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.glass-panel {
+  background: color-mix(in oklab, var(--card) 92%, white);
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 60px color-mix(in oklab, #3a332b 8%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.dark .glass-panel {
+  background: color-mix(in oklab, var(--card) 92%, black);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.pulse-ring {
+  animation: pulse-ring 1.8s ease-out 2;
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 55%, transparent); }
+  100% { box-shadow: 0 0 0 14px transparent; }
+}
+
+.reorder-in {
+  animation: rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
