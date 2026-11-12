@@ -11,6 +11,7 @@ from app.data.zones import clone_zone_template
 from app.db import dumps, get_conn, loads, row_to_dict
 from app.lib.algorithms import apply_inspection, apply_report, evaluate_state
 from app.lib.explain import active_tier
+from app.lib.forecast_provider import api_base, apply_sargassum_forecast, fetch_latest, risk_for_location
 from app.lib.weather import apply_weather_to_zones, fetch_marine_weather
 
 AT = timezone(timedelta(hours=-4))
@@ -104,12 +105,25 @@ def _reports(muni_id: int) -> list[dict[str, Any]]:
     return [dict(r) for r in rows]
 
 
+async def _apply_provider(zones: list[dict[str, Any]], lat: float, lng: float) -> list[dict[str, Any]]:
+    """Optional sargassum-forecast ForecastProvider (enabled by SARGASSUM_FORECAST_API). Never fails a snapshot."""
+    base = api_base()
+    if not base:
+        return zones
+    try:
+        info = risk_for_location(await fetch_latest(base), lat, lng)
+    except Exception as exc:  # provider down: keep Costa's own live risk and say why
+        info = {"available": False, "source": "sargassum-forecast", "reason": f"provider unavailable: {type(exc).__name__}"}
+    return apply_sargassum_forecast(zones, info)
+
+
 async def snapshot(muni: dict[str, Any], *, highlight: bool = False, user: dict[str, Any] | None = None) -> dict[str, Any]:
     zones = loads(muni["zones_json"], clone_zone_template())
     weather = loads(muni.get("weather_json") or "{}", {})
     try:
         weather = await fetch_marine_weather(float(muni["lat"]), float(muni["lng"]))
         zones = apply_weather_to_zones(zones, weather)
+        zones = await _apply_provider(zones, float(muni["lat"]), float(muni["lng"]))
         _save_muni(int(muni["id"]), weather_json=dumps(weather), zones_json=dumps(zones))
         muni = get_municipality(int(muni["id"])) or muni
     except Exception:
