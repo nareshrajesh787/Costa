@@ -66,6 +66,18 @@ export interface Zone {
     h48: { x: number; y: number }
   }
   forecastSource?: "live" | "scenario"
+  /** Set when the sargassum-forecast ForecastProvider is enabled (SARGASSUM_FORECAST_API). */
+  forecastProvider?: {
+    available: boolean
+    source?: string
+    site?: string
+    distanceKm?: number
+    modelVersion?: string
+    issueDate?: string
+    inValidatedSeason?: boolean
+    reason?: string
+    disclaimer?: string
+  }
   breakdown: ZoneBreakdown
   assignedCleanup?: boolean
   cleanupRank?: number
